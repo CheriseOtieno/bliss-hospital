@@ -36,6 +36,7 @@
               </svg>
             </div>
             <div>
+              <div class="font-semibold text-slate-800"> {{ appt.branch_name || 'N/A' }}</div>      
               <div class="font-semibold text-slate-800">Dr. {{ appt.doctor_name || 'N/A' }}</div>
               <div class="text-sm text-slate-500">{{ appt.department_name || 'General' }}</div>
               <div class="flex items-center gap-3 mt-2 text-sm text-slate-600">

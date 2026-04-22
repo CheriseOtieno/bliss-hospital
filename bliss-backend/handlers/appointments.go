@@ -8,6 +8,8 @@ import (
 	"bliss-backend/models"
 
 	"github.com/gin-gonic/gin"
+
+	"time"
 )
 
 func CreateAppointment(c *gin.Context) {
@@ -286,17 +288,30 @@ func GetSlots(c *gin.Context) {
 	doctorID := c.Query("doctor_id")
 	date := c.Query("date")
 
-	if doctorID == "" || date == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "doctor_id and date are required"})
+	if doctorID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "doctor_id is required"})
 		return
 	}
+
+	// If no date provided → use today
+	if date == "" {
+		date = time.Now().Format("2006-01-02")
+	} else if len(date) > 10 {
+		date = date[:10]
+	}
+
+	// 👉 Only allow next 7 days window
+	startDate := time.Now().Format("2006-01-02")
+	endDate := time.Now().AddDate(0, 0, 7).Format("2006-01-02")
 
 	rows, err := db.DB.Query(context.Background(),
 		`SELECT slot_id, doctor_id, slot_date, start_time, end_time, is_booked, created_at
 		 FROM availability_slots
-		 WHERE doctor_id = $1 AND slot_date = $2 AND is_booked = FALSE
-		 ORDER BY start_time`,
-		doctorID, date,
+		 WHERE doctor_id = $1
+		 AND slot_date BETWEEN $2 AND $3
+		 AND is_booked = FALSE
+		 ORDER BY slot_date, start_time`,
+		doctorID, startDate, endDate,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch slots"})
@@ -308,14 +323,22 @@ func GetSlots(c *gin.Context) {
 	for rows.Next() {
 		var s models.AvailabilitySlot
 		if err := rows.Scan(
-			&s.SlotID, &s.DoctorID, &s.SlotDate, &s.StartTime, &s.EndTime, &s.IsBooked, &s.CreatedAt,
+			&s.SlotID,
+			&s.DoctorID,
+			&s.SlotDate,
+			&s.StartTime,
+			&s.EndTime,
+			&s.IsBooked,
+			&s.CreatedAt,
 		); err == nil {
 			slots = append(slots, s)
 		}
 	}
+
 	if slots == nil {
 		slots = []models.AvailabilitySlot{}
 	}
+
 	c.JSON(http.StatusOK, slots)
 }
 
@@ -340,4 +363,3 @@ func CreateSlot(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, models.SuccessResponse{Message: "Slot created successfully", Data: slot})
 }
-

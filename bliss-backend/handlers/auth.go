@@ -15,6 +15,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Register creates a new user and returns a JWT token
 func Register(c *gin.Context) {
 	var req models.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -27,26 +28,42 @@ func Register(c *gin.Context) {
 		role = "patient"
 	}
 
+	// 1️⃣ Check if email already exists
+	var exists bool
+	err := db.DB.QueryRow(context.Background(), "SELECT EXISTS(SELECT 1 FROM users WHERE email=$1)", req.Email).Scan(&exists)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if exists {
+		c.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
+		return
+	}
+
+	// 2️⃣ Hash the password
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 		return
 	}
 
+	// 3️⃣ Insert new user
 	var user models.User
 	query := `
-		INSERT INTO users (full_name, email, phone, password_hash, role)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO users (full_name, email, phone, password_hash, role, is_active, created_at)
+		VALUES ($1, $2, $3, $4, $5, TRUE, NOW())
 		RETURNING user_id, full_name, email, phone, role, is_active, created_at
 	`
 	err = db.DB.QueryRow(context.Background(), query,
 		req.FullName, req.Email, req.Phone, string(hash), role,
 	).Scan(&user.UserID, &user.FullName, &user.Email, &user.Phone, &user.Role, &user.IsActive, &user.CreatedAt)
+
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	// 4️⃣ Generate JWT token
 	token, err := generateToken(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
@@ -56,6 +73,7 @@ func Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, models.AuthResponse{Token: token, User: user})
 }
 
+// Login authenticates a user and returns a JWT token
 func Login(c *gin.Context) {
 	var req models.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -92,6 +110,7 @@ func Login(c *gin.Context) {
 	c.JSON(http.StatusOK, models.AuthResponse{Token: token, User: user})
 }
 
+// Me returns the authenticated user's info
 func Me(c *gin.Context) {
 	userID := c.GetString("user_id")
 
@@ -108,6 +127,7 @@ func Me(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
+// generateToken creates a JWT for the given user
 func generateToken(user models.User) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 	claims := &middleware.Claims{
@@ -122,4 +142,3 @@ func generateToken(user models.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secret))
 }
-

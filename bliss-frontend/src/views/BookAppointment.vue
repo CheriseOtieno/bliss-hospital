@@ -94,6 +94,10 @@
       <h2 class="font-display font-semibold text-xl text-slate-800 mb-6">Confirm Booking</h2>
       <div class="bg-slate-50 rounded-xl p-5 space-y-3 mb-6">
         <div class="flex justify-between text-sm">
+          <span class="text-slate-500">Branch</span>
+          <span class="font-medium text-slate-800">{{ selected.branch?.name }}</span>
+        </div>
+        <div class="flex justify-between text-sm">
           <span class="text-slate-500">Department</span>
           <span class="font-medium text-slate-800">{{ selected.department?.name }}</span>
         </div>
@@ -170,9 +174,17 @@ function selectDoctor(doc) {
 }
 
 async function loadSlots() {
+  console.log("LOAD SLOTS TRIGGERED")
+
   if (!selected.value.date) return
-  await store.fetchSlots(selected.value.doctor.doctor_id, selected.value.date)
-  selected.value.slot = null
+
+  console.log("Doctor:", selected.value.doctor?.doctor_id)
+  console.log("Date:", selected.value.date)
+
+  await store.fetchSlots(
+    selected.value.doctor.doctor_id,
+    selected.value.date
+  )
 }
 
 async function confirmBooking() {
