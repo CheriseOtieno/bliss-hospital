@@ -31,6 +31,12 @@ type AuthResponse struct {
 	User  User   `json:"user"`
 }
 
+type Branch struct {
+	BranchID    string    `json:"branch_id"`
+	Name         string    `json:"branch_name"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
 // ── DEPARTMENT ────────────────────────────────────────────────
 type Department struct {
 	DepartmentID string    `json:"department_id"`
@@ -82,6 +88,7 @@ type Appointment struct {
 	AppointmentID   string    `json:"appointment_id"`
 	UserID          string    `json:"user_id"`
 	DoctorID        string    `json:"doctor_id"`
+	BranchID        string    `json:"branch_id"`
 	DepartmentID    string    `json:"department_id"`
 	SlotID          string    `json:"slot_id"`
 	AppointmentDate string    `json:"appointment_date"`
@@ -91,6 +98,7 @@ type Appointment struct {
 	Notes           string    `json:"notes"`
 	PatientName     string    `json:"patient_name,omitempty"`
 	DoctorName      string    `json:"doctor_name,omitempty"`
+	BranchName      string    `json:"branch_name,omitempty"`
 	DepartmentName  string    `json:"department_name,omitempty"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
@@ -98,6 +106,7 @@ type Appointment struct {
 
 type CreateAppointmentRequest struct {
 	DoctorID     string `json:"doctor_id"     binding:"required"`
+	BranchID     string `json:"branch_id"     binding:"required"`                                            
 	DepartmentID string `json:"department_id" binding:"required"`
 	SlotID       string `json:"slot_id"       binding:"required"`
 	Reason       string `json:"reason"`

@@ -16,23 +16,23 @@ import (
 
 func main() {
 
-	// Load .env variables
+	// Load env
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found — using system environment variables")
 	}
 
-	// Connect to database
+	// DB connection
 	db.Connect()
 	defer db.Close()
 
-	// Set Gin mode
+	// Gin mode
 	if os.Getenv("ENV") == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	r := gin.Default()
 
-	// ── CORS FIX (IMPORTANT) ─────────────────────────────
+	// CORS
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
 			"http://localhost:5173",
@@ -52,46 +52,52 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	// IMPORTANT: handle preflight requests
 	r.OPTIONS("/*path", func(c *gin.Context) {
 		c.AbortWithStatus(204)
 	})
 
-	// ── PUBLIC ROUTES ─────────────────────────────
+	// PUBLIC ROUTES
 	public := r.Group("/api")
 	{
 		public.POST("/auth/register", handlers.Register)
 		public.POST("/auth/login", handlers.Login)
+
+		// ✅ FIX ADDED: branches endpoint
+		public.GET("/branches", handlers.GetBranches)
+
 		public.GET("/departments", handlers.GetDepartments)
 		public.GET("/doctors", handlers.GetDoctors)
 		public.GET("/slots", handlers.GetSlots)
+
+		
 	}
 
-	// ── PROTECTED ROUTES ──────────────────────────
+	// PROTECTED ROUTES
 	protected := r.Group("/api")
 	protected.Use(middleware.AuthRequired())
 	{
 		protected.GET("/auth/me", handlers.Me)
+
 		protected.POST("/appointments", handlers.CreateAppointment)
 		protected.GET("/appointments", handlers.GetAppointments)
 		protected.GET("/appointments/:id", handlers.GetAppointment)
 		protected.PATCH("/appointments/:id", handlers.UpdateAppointment)
+
 		protected.POST("/queue/checkin", handlers.CheckIn)
 		protected.GET("/queue/my", handlers.GetMyQueueStatus)
 		protected.GET("/notifications", handlers.GetNotifications)
 	}
 
-	// ── STAFF ROUTES ──────────────────────────────
+	// STAFF ROUTES
 	staff := r.Group("/api")
 	staff.Use(middleware.AuthRequired(), middleware.StaffOnly())
 	{
 		staff.GET("/queue", handlers.GetQueue)
 		staff.PATCH("/queue/:id", handlers.UpdateQueueEntry)
 		staff.GET("/queue/stats", handlers.GetQueueStats)
-		staff.POST("/slots", handlers.CreateSlot)
 	}
 
-	// ── ADMIN ROUTES ──────────────────────────────
+	// ADMIN ROUTES
 	admin := r.Group("/api/admin")
 	admin.Use(middleware.AuthRequired(), middleware.AdminOnly())
 	{

@@ -28,6 +28,7 @@
               <tr>
                 <th class="text-left px-6 py-3 font-medium text-slate-500">Patient</th>
                 <th class="text-left px-6 py-3 font-medium text-slate-500">Doctor</th>
+                <th class="text-left px-6 py-3 font-medium text-slate-500">Branch</th>
                 <th class="text-left px-6 py-3 font-medium text-slate-500">Department</th>
                 <th class="text-left px-6 py-3 font-medium text-slate-500">Date & Time</th>
                 <th class="text-left px-6 py-3 font-medium text-slate-500">Status</th>
@@ -38,6 +39,7 @@
               <tr v-for="appt in filtered" :key="appt.appointment_id" class="hover:bg-slate-50">
                 <td class="px-6 py-4 font-medium text-slate-800">{{ appt.patient_name }}</td>
                 <td class="px-6 py-4 text-slate-600">Dr. {{ appt.doctor_name }}</td>
+                <td class="px-6 py-4 text-slate-500">{{ appt.branch_name }}</td>
                 <td class="px-6 py-4 text-slate-500">{{ appt.department_name }}</td>
                 <td class="px-6 py-4 text-slate-600">
                   <div>{{ formatDate(appt.appointment_date) }}</div>
